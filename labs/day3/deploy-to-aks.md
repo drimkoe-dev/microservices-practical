@@ -19,6 +19,19 @@ By the end of this exercise, you will gain hands-on experience in deploying cont
 - Copy your project folder to a `Day3/Solutions/Lab1`. This will be the starting point for this exercise.
 ---
 
+#### Set environment variables to use throughout the lab:
+
+```
+export RESOURCE_GROUP="YOUR_INITIALS-rg"
+export AKS="YOUR_INITIALS-aks-12182024"
+export ACR_NAME="YOUR_INITIALS-acr-12182024"
+export AKS_CLUSTER="YOUR_INITIALS-cluster-12182024"
+export LOCATION="eastus"
+export ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
+```
+
+Note: Replace `YOUR_INITIALS` with your actual initials in the commands above. Use small lowercase letters.
+
 #### Step 2: Install Required Tools
 
 Before proceeding, ensure that the following tools are installed on your machine. If not, follow the instructions below to install them.
@@ -81,10 +94,10 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
 
    - Create a resource group to organize your Azure resources:
 
-     - **Tip**: Replace `myResourceGroup` with `YOUR_INITIALS-myResourceGroup` resource group name.
+     - **Tip**: Replace `$RESOURCE_GROUP` with `$RESOURCE_GROUP` resource group name.
      
      ```bash
-     az group create --name YOUR_INITIALS-myResourceGroup --location eastus
+     az group create --name $RESOURCE_GROUP --location eastus
      ```
      
 
@@ -92,10 +105,8 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
 
    - Create an ACR instance:
 
-   - **Important**: Replace `myResourceGroup` with the `student#` resource group from above and `mycontainerregistry010` with `YOUR_INITIALSregistry12182024`.
-
      ```bash
-     az acr create --resource-group myResourceGroup --name mycontainerregistry010 --sku Basic --admin-enabled true
+     az acr create --resource-group $RESOURCE_GROUP --name $ACR_NAME --sku Basic --admin-enabled true
      ```
 
      - The `--admin-enabled true` flag enables the admin user for authentication.
@@ -105,23 +116,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
    - Authenticate Docker with your ACR registry:
 
      ```bash
-     az acr login --name YOUR_INITIALSregistry12182024
-     ```
-
-5. **Set Environment Variables for ACR**
-
-   - Store the registry name and login server in environment variables:
-   - 
-    Bash
-     ```bash
-     ACR_NAME=mycontainerregistry010
-     ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
-     ```
-
-     Powershell
-     ```powershell
-     $ACR_NAME = "mycontainerregistry010"
-     $ACR_LOGIN_SERVER = az acr show --name $ACR_NAME --query loginServer --output tsv
+     az acr login --name $ACR_NAME
      ```
 
 
@@ -134,7 +129,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
    - Create an Azure Kubernetes Service (AKS) cluster:
 
      ```bash
-     az aks create -g myResourceGroup -n YOUR_INITIALS-myAKSCluster --node-count=1 --enable-addons=monitoring --generate-ssh-key
+     az aks create -g $RESOURCE_GROUP -n $AKS_CLUSTER --node-count=1 --enable-addons=monitoring --generate-ssh-key
      ```
 
      - **Tip**: The `--enable-addons monitoring` flag enables monitoring via Azure Monitor for containers.
@@ -145,7 +140,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
    - Set up kubectl to connect to your AKS cluster:
 
      ```bash
-     az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+     az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_CLUSTER
      ```
 
 3. **Grant AKS Access to ACR**
@@ -153,7 +148,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
    - Allow the AKS cluster to pull images from your ACR:
 
      ```bash
-     az aks update -n myAKSCluster -g myResourceGroup --attach-acr $ACR_NAME
+     az aks update -n $AKS_CLUSTER -g $RESOURCE_GROUP --attach-acr $ACR_NAME
      ```
 
 4. **Build and Push Docker Images to ACR**
@@ -202,7 +197,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
          spec:
            containers:
            - name: backend
-             image: mycontainerregistry010.azurecr.io/backend:latest
+             image: YOUR_INITIALS-acr-12182024.azurecr.io/backend:latest
              ports:
              - containerPort: 3001
              env:
@@ -247,7 +242,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
          spec:
            containers:
            - name: frontend
-             image: mycontainerregistry010.azurecr.io/frontend:latest
+             image: YOUR_INITIALS-acr-12182024.azurecr.io/frontend:latest
              ports:
              - containerPort: 3000
              env:
@@ -300,21 +295,21 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
     BASH
      ```bash
      STORAGE_ACCOUNT_NAME=mystorage$RANDOM
-     az storage account create --name $STORAGE_ACCOUNT_NAME --location eastus --resource-group myResourceGroup --sku Standard_LRS
+     az storage account create --name $STORAGE_ACCOUNT_NAME --location eastus --resource-group $RESOURCE_GROUP --sku Standard_LRS
      ```
 
      POWERSHELL
      ```powershell
      $RANDOM = Get-Random
      $STORAGE_ACCOUNT_NAME = "mystorage$RANDOM"
-     az storage account create --name $STORAGE_ACCOUNT_NAME --location eastus --resource-group myResourceGroup --sku Standard_LRS
+     az storage account create --name $STORAGE_ACCOUNT_NAME --location eastus --resource-group $RESOURCE_GROUP --sku Standard_LRS
      ```
 
 2. **Create an Azure Function App**
 
    ```bash
    FUNCTION_APP_NAME=funcapp$RANDOM
-   az functionapp create --resource-group myResourceGroup --consumption-plan-location eastus --runtime node --functions-version 4 --name $FUNCTION_APP_NAME --storage-account $STORAGE_ACCOUNT_NAME
+   az functionapp create --resource-group $RESOURCE_GROUP --consumption-plan-location eastus --runtime node --functions-version 4 --name $FUNCTION_APP_NAME --storage-account $STORAGE_ACCOUNT_NAME
    ```
 
 3. **Modify Backend Code for Azure Functions**
@@ -356,7 +351,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
    - **Enable CORS so that the frontend can call the service**
      
      ```bash
-     az functionapp cors add --name $FUNCTION_APP_NAME --resource-group myResourceGroup --allowed-origins *
+     az functionapp cors add --name $FUNCTION_APP_NAME --resource-group $RESOURCE_GROUP --allowed-origins *
     ```
 
 5. **Update Frontend Environment Variable**
@@ -401,7 +396,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
       export default App;
       ```
 
-6. **Rebuild and Push Frontend Image**az functionapp cors add --name myFunctionApp --resource-group myResourceGroup --allowed-origins http://localhost:3000az functionapp cors add --name myFunctionApp --resource-group myResourceGroup --allowed-origins http://localhost:3000
+6. **Rebuild and Push Frontend Image**az functionapp cors add --name myFunctionApp --resource-group $RESOURCE_GROUP --allowed-origins http://localhost:3000az functionapp cors add --name myFunctionApp --resource-group $RESOURCE_GROUP --allowed-origins http://localhost:3000
 
    - **Build and Push Updated Frontend Image**
 
@@ -438,7 +433,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
          spec:
            containers:
            - name: frontend
-             image: mycontainerregistry010.azurecr.io/frontend:latest
+             image: $ACR_NAME.azurecr.io/frontend:latest
              ports:
              - containerPort: 3000
              env:
