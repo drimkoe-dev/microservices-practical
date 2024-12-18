@@ -17,6 +17,42 @@ By the end of this exercise, you will gain hands-on experience in deploying cont
 
 - **Create a Copy of Your Project**
 - Copy your project folder to a `Day3/Solutions/Lab1`. This will be the starting point for this exercise.
+
+  To enable **CORS** (Cross-Origin Resource Sharing) in your Express server, you can use the `cors` middleware provided by the `cors` package.
+
+Here’s how you can enable CORS:
+
+---
+
+### **Steps to Enable CORS**
+
+1. **Install the `cors` package:**
+   Run the following command in your project directory:
+   ```bash
+   npm install cors
+   ```
+
+2. **Import and Use the Middleware:**
+   Update the `index.js` code in the backend to include the `cors` middleware. Here’s the modified version of your code:
+
+   ```javascript
+   const express = require('express');
+   const cors = require('cors'); // Import the CORS middleware
+   const app = express();
+   const port = process.env.PORT || 3001;
+
+   // Enable CORS for all routes
+   app.use(cors());
+
+   app.get('/api', (req, res) => {
+     res.json({ message: 'Hello from the backend!' });
+   });
+
+   app.listen(port, () => {
+     console.log(`Backend server is running on port ${port}`);
+   });
+   ```
+
 ---
 
 #### Set environment variables to use throughout the lab:
@@ -24,10 +60,9 @@ By the end of this exercise, you will gain hands-on experience in deploying cont
 ```
 export RESOURCE_GROUP="YOUR_INITIALS-rg"
 export AKS="YOUR_INITIALS-aks-12182024"
-export ACR_NAME="YOUR_INITIALS-acr-12182024"
-export AKS_CLUSTER="YOUR_INITIALS-cluster-12182024"
+export ACR_NAME="YOUR_INITIALSacr12182024"
+export AKS_CLUSTER="YOUR_INITIALScluster12182024"
 export LOCATION="eastus"
-export ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
 ```
 
 Note: Replace `YOUR_INITIALS` with your actual initials in the commands above. Use small lowercase letters.
@@ -129,6 +164,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
    - Create an Azure Kubernetes Service (AKS) cluster:
 
      ```bash
+     export ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
      az aks create -g $RESOURCE_GROUP -n $AKS_CLUSTER --node-count=1 --enable-addons=monitoring --generate-ssh-key
      ```
 
@@ -171,6 +207,8 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
      cd ..
      ```
 
+
+
 5. **Update Kubernetes Deployment Files**
 
    - **Create the Backend Deployment**
@@ -197,7 +235,7 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
          spec:
            containers:
            - name: backend
-             image: YOUR_INITIALS-acr-12182024.azurecr.io/backend:latest
+             image: YOUR_INITIALSacr12182024.azurecr.io/backend:latest
              ports:
              - containerPort: 3001
              env:
@@ -215,7 +253,17 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
        - protocol: TCP
          port: 3001
          targetPort: 3001
-       type: ClusterIP
+       type: LoadBalancer
+     ```
+
+   - **Apply the backend deployment**
+     ```bash
+          kubectl apply -f k8s/backend-deployment.yaml
+     ```
+    - Get the external IP of the backend service:
+
+     ```bash
+     kubectl get service backend-service
      ```
 
    - **Create the Frontend Deployment**
@@ -242,12 +290,12 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
          spec:
            containers:
            - name: frontend
-             image: YOUR_INITIALS-acr-12182024.azurecr.io/frontend:latest
+             image: YOUR_INITIALSacr12182024.azurecr.io/frontend:latest
              ports:
              - containerPort: 3000
              env:
              - name: REACT_APP_BACKEND_URL
-               value: "http://backend-service:3001/api"
+               value: "http://<backend-service-external-ip>:3001/api"
      ---
      apiVersion: v1
      kind: Service
@@ -268,7 +316,6 @@ Azure Container Registry (ACR) is a managed, private Docker registry service tha
    - Apply the deployment configurations:
 
      ```bash
-     kubectl apply -f k8s/backend-deployment.yaml
      kubectl apply -f k8s/frontend-deployment.yaml
      ```
 
